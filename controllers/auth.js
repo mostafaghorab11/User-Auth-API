@@ -57,16 +57,42 @@ const signup = async (req, res, next) => {
   }
 };
 
-const login = (req, res, next) => {
-  res.status(200).json({
-    message: "login successful",
-  });
+const login = async (req, res, next) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "Please enter an email and password" });
+  }
+  const user = await User.findOne({ email: email });
+  if(user) {
+    const isMatch = await user.comparePassword(password);
+    if(isMatch) {
+      const payload = { userId: user._id };
+      const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
+        expiresIn: "30d",
+      });
+      res.status(200).json({
+        message: "Login successful",
+        token: token,
+      });
+    } else {
+      res.status(StatusCodes.UNAUTHORIZED).json({
+        message: "Invalid email or password",
+      });
+    }
+  } else {
+    res.status(StatusCodes.UNAUTHORIZED).json({
+      message: "Invalid email or password",
+    });
+  }
 };
 
 const dashboard = (req, res) => {
   const luckyNumber = Math.floor(Math.random() * 100);
 
   res.status(200).json({
+    msg: `Hello, ${req.user.username}`,
     secret: `Here is your authorized data, your lucky number is ${luckyNumber}`,
   });
 };
