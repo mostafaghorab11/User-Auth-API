@@ -34,8 +34,13 @@ const signup = async (req, res, next) => {
       .status(201)
       .json({ message: "User created successfully", user: savedUser });
   } catch (error) {
-    const formattedErrors = handleValidationError(error);
-    res.status(StatusCodes.BAD_REQUEST).json(formattedErrors);
+    if (error.name === "ValidationError") {
+      const formattedErrors = handleValidationError(error);
+      res.status(StatusCodes.BAD_REQUEST).json(formattedErrors);
+    } else {
+      // Handle other errors (e.g., database errors)
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   }
 };
 
