@@ -1,5 +1,5 @@
 const express = require("express");
-const { login, signup, dashboard } = require("../controllers/auth");
+const { login, signup, dashboard, forgetPassword, resetPassword } = require("../controllers/auth");
 
 const jwtPassport = require("../config/jwt-passport");
 const googlePassport = require("../config/google-passport");
@@ -17,5 +17,9 @@ router.get(
   googlePassport.authenticate("google", { scope: ["profile", "email"] }),
   dashboard
 ); // Request Google profile and email
+
+router.post('/forget-password', forgetPassword);
+
+router.post('/reset-password/:token', resetPassword);
 
 module.exports = router;
