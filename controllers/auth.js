@@ -3,7 +3,6 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
-const bcrypt = require("bcrypt");
 
 const User = require("../models/user");
 const handleValidationError = require("../errors/validation-error");
@@ -60,33 +59,43 @@ const signup = async (req, res, next) => {
 };
 
 const login = async (req, res, next) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res
-      .status(StatusCodes.BAD_REQUEST)
-      .json({ message: "Please enter an email and password" });
-  }
-  const user = await User.findOne({ email: email });
-  if (user) {
-    const isMatch = await user.comparePassword(password);
-    if (isMatch) {
-      const payload = { userId: user._id };
-      const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
-        expiresIn: "30d",
-      });
-      res.status(200).json({
-        message: "Login successful",
-        token: token,
-      });
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ message: "Please enter an email and password" });
+    }
+    const user = await User.findOne({ email: email });
+    if (user) {
+      const isMatch = await user.comparePassword(password);
+      if (isMatch) {
+        const payload = { userId: user._id };
+        const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
+          expiresIn: "30d",
+        });
+        res.status(200).json({
+          message: "Login successful",
+          token: token,
+        });
+      } else {
+        res.status(StatusCodes.UNAUTHORIZED).json({
+          message: "Invalid email or password",
+        });
+      }
     } else {
       res.status(StatusCodes.UNAUTHORIZED).json({
         message: "Invalid email or password",
       });
     }
-  } else {
-    res.status(StatusCodes.UNAUTHORIZED).json({
-      message: "Invalid email or password",
-    });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      const formattedErrors = handleValidationError(error);
+      res.status(StatusCodes.BAD_REQUEST).json(formattedErrors);
+    } else {
+      // Handle other errors (e.g., database errors)
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   }
 };
 
@@ -150,6 +159,12 @@ const resetPassword = async (req, res, next) => {
     const { token } = req.params;
     const { password } = req.body;
 
+    if (!password) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ message: "Please enter a password" });
+    }
+
     const user = await User.findOne({
       resetToken: token,
       resetTokenExpiry: { $gt: Date.now() },
@@ -166,11 +181,14 @@ const resetPassword = async (req, res, next) => {
     await user.save();
 
     res.json({ message: "Password reset successful" });
-  } catch (err) {
-    console.error(err);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: "Internal Server Error" });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      const formattedErrors = handleValidationError(error);
+      res.status(StatusCodes.BAD_REQUEST).json(formattedErrors);
+    } else {
+      // Handle other errors (e.g., database errors)
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   }
 };
 
