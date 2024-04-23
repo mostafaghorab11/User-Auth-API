@@ -20,16 +20,14 @@ const googleStrategy = new GoogleStrategy(
     try {
       // console.log(profile);
       // Find or create user based on Google profile data (e.g., email)
-      const user = await User.findOne({ email: profile.emails[0].value });
+      const user = await User.findOne({ email: profile.emails[0].value }, '-password');
       if (user) {
         return done(null, user);
       } else {
         const user = new User({
           username: profile.displayName,
           email: profile.emails[0].value,
-          googleId: profile.id,
-          //change this password logic
-          password: "Somedummypassword@1",
+          password: `${profile.id}${process.env.PASSWORD_SECRET}`,
         });
         await user.save();
         return done(null, user);
