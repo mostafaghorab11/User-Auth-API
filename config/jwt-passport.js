@@ -12,7 +12,7 @@ opts.secretOrKey = process.env.JWT_SECRET_KEY;
 const jwtStrategy = new JwtStrategy(opts, async (jwt_payload, done) => {
   // console.log(jwt_payload);
   try {
-    const user = await User.findOne({ _id: jwt_payload.userId }, '-password');
+    const user = await User.findOne({ _id: jwt_payload.userId }, "-password");
     // console.log(user);
     if (user) {
       return done(null, user);

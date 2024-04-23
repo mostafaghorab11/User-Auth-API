@@ -40,6 +40,9 @@ const userSchema = new mongoose.Schema({
         "Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, 1 symbol, and be at least 8 characters long",
     },
   },
+  googleId: {
+    type: String
+  }
 });
 
 userSchema.pre("save", async function (next) {

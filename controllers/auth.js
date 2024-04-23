@@ -4,7 +4,6 @@ require("dotenv").config();
 
 const User = require("../models/user");
 const handleValidationError = require("../errors/validation-error");
-const passport = require("../config/passport");
 
 const signup = async (req, res, next) => {
   // console.log(req.body);
