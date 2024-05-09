@@ -7,6 +7,20 @@ const nodemailer = require("nodemailer");
 const User = require("../models/user");
 const handleValidationError = require("../errors/validation-error");
 
+const generateTokens = async (userId) => {
+  const payload = { userId: userId };
+  const accessToken = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
+    expiresIn: "30m",
+  });
+  const refreshToken = jwt.sign(
+    payload,
+    process.env.JWT_SECRET_KEY + "refresh",
+    { expiresIn: "15d" }
+  );
+
+  return { accessToken, refreshToken };
+};
+
 const signup = async (req, res, next) => {
   // console.log(req.body);
   try {
@@ -36,16 +50,13 @@ const signup = async (req, res, next) => {
 
     const savedUser = await user.save();
 
-    // Generate JWT upon successful signup
-    const payload = { userId: user._id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
-      expiresIn: "30d",
-    });
+    const { accessToken, refreshToken } = await generateTokens(savedUser._id);
 
     res.status(201).json({
       message: "User created successfully",
       user: savedUser,
-      token: token,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
     });
   } catch (error) {
     if (error.name === "ValidationError") {
@@ -70,13 +81,11 @@ const login = async (req, res, next) => {
     if (user) {
       const isMatch = await user.comparePassword(password);
       if (isMatch) {
-        const payload = { userId: user._id };
-        const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
-          expiresIn: "30d",
-        });
+        const { accessToken, refreshToken } = await generateTokens(user._id);
         res.status(200).json({
           message: "Login successful",
-          token: token,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
         });
       } else {
         res.status(StatusCodes.UNAUTHORIZED).json({
@@ -192,6 +201,29 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const refresh = async (req, res) => {
+  const refreshToken = req.body.refreshToken;
+  if (!refreshToken) {
+    return res.status(400).json({ message: "Missing refresh token" });
+  }
+  try {
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_SECRET_KEY + "refresh"
+    ); // Verify refresh token
+    const user = await User.findById(decoded.userId); // Fetch user from database
+    console.log(user.id);
+    if (user) {
+      const { accessToken } = await generateTokens(user._id); // Generate new access and refresh tokens
+      return res.json({ accessToken: accessToken });
+    } else {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid refresh token" });
+  }
+};
+
 const dashboard = (req, res) => {
   const luckyNumber = Math.floor(Math.random() * 100);
 
@@ -201,4 +233,12 @@ const dashboard = (req, res) => {
   });
 };
 
-module.exports = { signup, login, dashboard, forgetPassword, resetPassword };
+module.exports = {
+  generateTokens,
+  signup,
+  login,
+  dashboard,
+  forgetPassword,
+  resetPassword,
+  refresh,
+};
