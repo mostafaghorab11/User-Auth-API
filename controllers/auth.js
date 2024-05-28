@@ -6,6 +6,7 @@ const nodemailer = require("nodemailer");
 const User = require("../models/user");
 const { catchAsync } = require("../util/catchAsync");
 const AppError = require("../util/appError");
+const sendEmail = require("../util/email");
 
 const generateTokens = (userId) => {
   const payload = { userId: userId };
@@ -80,32 +81,17 @@ const forgetPassword = catchAsync(async (req, res, next) => {
   user.resetTokenExpiry = resetTokenExpiry;
   await user.save();
 
-  // Create a transporter for sending emails
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // Use `true` for port 465, `false` for all other ports
-    auth: {
-      user: "vetghorab@gmail.com",
-      //through app passwords in security in google settings
-      pass: process.env.GOOGLE_PASSWORD,
-    },
-  });
-
   const resetUrl = `http://localhost:3000/api/v1/reset-password/${resetToken}`; // Replace with your frontend reset password URL
 
-  const mailOptions = {
-    from: "vetghorab@gmail.com", // Replace with your email address
-    to: email,
+  await sendEmail({
+    email: email,
     subject: "Password Reset Request",
-    html: `
-        <p>You requested a password reset for your account.</p>
-        <p>Click this link to reset your password within 1 hour:</p>
-        <a href="${resetUrl}">Reset Password</a>
-      `,
-  };
-
-  await transporter.sendMail(mailOptions);
+    message: `
+      <p>You requested a password reset for your account.</p>
+      <p>Click this link to reset your password within 1 hour:</p>
+      <a href="${resetUrl}">Reset Password</a>
+    `,
+  });
 
   res.json({ message: "Password reset instructions sent to your email" });
 });
