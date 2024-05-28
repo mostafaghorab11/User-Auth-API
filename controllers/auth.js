@@ -1,7 +1,5 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const crypto = require("crypto");
-const nodemailer = require("nodemailer");
 
 const User = require("../models/user");
 const { catchAsync } = require("../util/catchAsync");
@@ -23,13 +21,9 @@ const generateTokens = (userId) => {
 };
 
 const signup = catchAsync(async (req, res, next) => {
-  const { username, email, password } = req.body;
+  // const { username, email, password } = req.body;
 
-  const user = new User({
-    username,
-    email,
-    password,
-  });
+  const user = new User(req.body);
 
   const savedUser = await user.save();
 
@@ -73,13 +67,8 @@ const forgetPassword = catchAsync(async (req, res, next) => {
   if (!user) {
     throw new AppError("Email not found", 404);
   }
-  // Generate a random reset token to send to Email
-  const resetToken = crypto.randomBytes(20).toString("hex");
-  const resetTokenExpiry = Date.now() + 3600000; // 1 hour from now
-
-  user.resetToken = resetToken;
-  user.resetTokenExpiry = resetTokenExpiry;
-  await user.save();
+  const resetToken = await user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
 
   const resetUrl = `http://localhost:3000/api/v1/reset-password/${resetToken}`; // Replace with your frontend reset password URL
 
