@@ -1,6 +1,9 @@
 const express = require("express");
 require("dotenv").config();
 const session = require("express-session");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const mongoSanitize = require('express-mongo-sanitize');
 
 const router = require("./routes/auth");
 const connectDB = require("./db/connect");
@@ -15,19 +18,30 @@ process.on("uncaughtException", (err) => {
   });
 });
 
-const app = express();
 const port = process.env.PORT || 3000;
 
-// Middlewares
-// app.use(
-//   session({
-//     secret: process.env.SESSION_SECRET,
-//     resave: false,
-//     saveUninitialized: true,
-//     cookie: { secure: false }, // Set to true if using HTTPS only
-//   })
-// );
+const app = express();
 app.use(express.json()); // to handle req.body
+
+// 1) GLOBAL MIDDLEWARES
+// Set security HTTP headers
+app.use(helmet());
+
+// Development logging
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+  app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }, // Set to true if using HTTPS only
+  })
+);
+}
+
+app.use(mongoSanitize());
+
 app.use("/api/v1", router);
 
 app.use(notFoundMiddleware);
