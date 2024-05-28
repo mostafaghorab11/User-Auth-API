@@ -19,30 +19,27 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middlewares
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }, // Set to true if using HTTPS only
-  })
-);
+// app.use(
+//   session({
+//     secret: process.env.SESSION_SECRET,
+//     resave: false,
+//     saveUninitialized: true,
+//     cookie: { secure: false }, // Set to true if using HTTPS only
+//   })
+// );
 app.use(express.json()); // to handle req.body
 app.use("/api/v1", router);
 
 app.use(notFoundMiddleware);
 app.use(globalErrorsHandler);
 
-const start = async () => {
-  try {
-    await connectDB(process.env.MONGO_URI);
+let server;
 
-    app.listen(port, () => {
-      console.log(`Server is listening at http://localhost:${port}`);
-    });
-  } catch (err) {
-    console.log(err);
-  }
+const start = () => {
+  connectDB(process.env.MONGO_URI);
+  server = app.listen(port, () => {
+    console.log(`Server is listening at http://localhost:${port}`);
+  });
 };
 
 start();

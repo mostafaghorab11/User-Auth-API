@@ -1,16 +1,17 @@
-const AppError = require('../util/appError');
+const AppError = require("../util/appError");
 
-require('dotenv').config();
+require("dotenv").config();
 
 const globalErrorsHandler = (err, req, res, next) => {
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     sendErrorDev(err, res);
-  } else if (process.env.NODE_ENV === 'production') {
-    let error = { name: err.name, ...err };
-    // console.log(error);
-    if (error.name === 'CastError') error = handleCastErrorDB(error);
+  } else if (process.env.NODE_ENV === "production") {
+    let error = { name: err.name, message: err.message, ...err };
+    console.log(error);
+    if (error.name === "CastError") error = handleCastErrorDB(error);
     if (error.code === 11000) error = handleDoubleDocumentErrorDB(error);
-    if(error.name === 'ValidationError') error = handleValidationErrorDB(error);
+    if (error.name === "ValidationError")
+      error = handleValidationErrorDB(error);
 
     sendErrorProd(error, res);
   }
@@ -40,10 +41,10 @@ const sendErrorProd = (err, res) => {
     });
   } else {
     // 1) programming or other unknown error, dot't leak error details
-    console.error('ERROR', err);
+    console.error("ERROR", err);
     res.status(500).json({
-      status: 'error',
-      message: 'Something went wrong',
+      status: "error",
+      message: "Something went wrong",
     });
   }
 };
@@ -54,14 +55,15 @@ const handleCastErrorDB = (err) => {
 };
 
 const handleDoubleDocumentErrorDB = (err) => {
-  const message = `Duplicate field value: ${err.keyValue.name}. Please use another value`;
+  const value = err.keyValue[Object.keys(err.keyValue)[0]];
+  const message = `Duplicate field value: ${value}. Please use another value`;
   return new AppError(message, 400);
 };
 
 const handleValidationErrorDB = (err) => {
   const errors = Object.values(err.errors).map((el) => el.message);
-  const message = `Invalid input data. ${errors.join('. ')}`;
+  const message = `Invalid input data. ${errors.join(". ")}`;
   return new AppError(message, 400);
-}
+};
 
 module.exports = { globalErrorsHandler };
