@@ -6,9 +6,10 @@ const {
   forgetPassword,
   resetPassword,
   refresh,
+  protect,
+  updatePassword,
 } = require("../controllers/auth");
 
-const jwtPassport = require("../config/jwt-passport");
 const googlePassport = require("../config/google-passport");
 
 const router = express.Router();
@@ -16,9 +17,7 @@ const router = express.Router();
 router.route("/signup").get().post(signup);
 router.route("/login").get().post(login);
 router.route("/refresh").get(refresh);
-router
-  .route("/dashboard")
-  .get(jwtPassport.authenticate("jwt", { session: false }), dashboard);
+router.route("/dashboard").get(protect, dashboard);
 
 router.get(
   "/login/google",
@@ -28,6 +27,7 @@ router.get(
 
 router.post("/forget-password", forgetPassword);
 
-router.post("/reset-password/:token", resetPassword);
+router.patch("/reset-password/:token", resetPassword);
+router.patch("/updateMyPassword", protect, updatePassword);
 
 module.exports = router;
