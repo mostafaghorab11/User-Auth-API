@@ -14,6 +14,7 @@ const googlePassport = require("../config/google-passport");
 
 const router = express.Router();
 
+// "api/v1"
 router.route("/signup").get().post(signup);
 router.route("/login").get().post(login);
 router.route("/refresh").get(refresh);

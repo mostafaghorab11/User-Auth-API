@@ -110,18 +110,17 @@ const protect = catchAsync(async (req, res, next) => {
   // 3) Check if user still exists
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
-    return next(
-      new AppError(
-        "The user belonging to this token does no longer exist.",
-        401
-      )
+    throw new AppError(
+      "The user belonging to this token does no longer exist.",
+      401
     );
   }
 
   // 4) Check if user changed password after the token was issued
   if (currentUser.changedPasswordAfter(decoded.iat)) {
-    return next(
-      new AppError("User recently changed password! Please log in again.", 401)
+    throw new AppError(
+      "User recently changed password! Please log in again.",
+      401
     );
   }
 
@@ -230,6 +229,8 @@ const refresh = catchAsync(async (req, res) => {
   }
 });
 
+// reset password using the current password
+// should be done after protected access
 const updatePassword = catchAsync(async (req, res, next) => {
   // 1) Get user from collection
   const user = await User.findById(req.user.id).select("+password");
